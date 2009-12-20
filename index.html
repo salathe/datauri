@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+		<title>Data URI</title>
+		<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/combo?2.8.0r4/build/reset-fonts/reset-fonts.css&2.8.0r4/build/base/base-min.css"/> 
+		<style type="text/css">
+			h1 { font-size: 2em; margin: 0.5em 2.5em; }
+			form { margin: 1em 0; }
+			div { clear: both; margin: 0.5em 0; }
+			label, h3 { float: left; width: 4em; font-weight: bold; margin-right: 1em; font-size: 1em; }
+			input { width: 40em; }
+			button { margin-left: 5em; }
+			.uri { margin: 1em 0; width: 40em; height: 20em; font-family: monospace; }
+			.error { color: #c20; }
+		</style>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.js"></script>
+		<script type="text/javascript">
+			(function($){
+				var AppException = function(message){
+					this.message = message;
+				};
+				AppException.prototype.toString = function(){
+					return this.message;
+				};
+				
+				var fetchData = function(url){
+					// Disable button and show loading text
+					jQuery("button").attr("disabled", "disabled");
+					jQuery("#result").removeClass("error").text("loading...");
+					
+					// Construct YQL URL and fetch JSONP
+					var endpoint = 'http://query.yahooapis.com/v1/public/yql/peter/datauri?';
+					var params   = {
+						url: url,
+						format: 'json',
+						diagnostics: 'false'
+					};
+					var url = endpoint + jQuery.param(params) + "&callback=?";
+					jQuery.getJSON(url, acceptData);
+				};
+				
+				var acceptData = function(data){
+					try {
+						// Throw errors retrieved from YQL
+						if (data.query.results === null) {
+							throw new AppException("No result returned (is your URL correct?)");
+						}
+						if (data.query.results.error !== undefined) {
+							// Filesize too big: "123456 > 25600"
+							if (data.query.results.error.indexOf(" > 25600") > -1) {
+								throw new AppException("Remote file must be under 25kb");
+							}
+							
+							// Other error
+							throw new AppException("YQL said '" + data.query.results.error + "'");
+						}
+					
+						// Format data URI to wrap at 60 characters
+						var uri = data.query.results.url.replace(/\n/g, "").replace(/(.{60})/g, "$1\n");
+						jQuery("#result").text(uri);
+					} catch(err) {
+						// Display error message
+						jQuery("#result").addClass("error").text(err.toString() || "Oopsie. Something went wrong.");
+					}
+					
+					// Re-enable the button
+					jQuery("button").attr("disabled", "");
+				};
+				
+				jQuery(function(){
+					// Default URL to test
+					jQuery("#url").val("http://l.yimg.com/a/i/us/pps/yql32.png");
+					
+					// Hook form submit event
+					jQuery("form").submit(function(){
+						fetchData(jQuery("#url").val());
+						return false;
+					});
+				});
+				
+			})(jQuery);			
+		</script>
+	</head>
+	<body>
+		<h1>Data URI</h1>
+		<form action="" method="get">
+			<div>
+				<label for="url">URL</label>
+				<input id="url" name="url" value="" />
+			</div>
+			<div>
+				<button type="submit">Get Data URI</button>
+			</div>
+		</form>
+		
+		<div>
+			<h3>Result</h3>
+			<textarea class="uri" id="result"></textarea>
+		</div>
+		
+	</body>
+</html>
