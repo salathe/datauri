@@ -57,7 +57,7 @@
 						}
 					
 						// Format data URI to wrap at 60 characters
-						var uri = data.query.results.url.replace(/\n/g, "").replace(/(.{60})/g, "$1\n");
+						var uri = data.query.results.url.replace(/\r?\n/g, "").replace(/(.{60})/g, "$1\n");
 						jQuery("#result").text(uri);
 					} catch(err) {
 						// Display error message
